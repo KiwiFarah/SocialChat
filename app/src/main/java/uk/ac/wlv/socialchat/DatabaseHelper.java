@@ -7,8 +7,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "SocialChat.db";
-    private static final int DATABASE_VERSION = 2; // Incremented database version
-
+    private static final int DATABASE_VERSION = 4;
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
@@ -19,15 +18,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         String CREATE_MESSAGES_TABLE = "CREATE TABLE messages ("
                 + "id INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + "message TEXT,"
-                + "image_uri TEXT)";
+                + "image_path TEXT)"; // Changed from "image_uri" to "image_path"
         db.execSQL(CREATE_MESSAGES_TABLE);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // Handle database upgrade logic
-        if (oldVersion < 2) {
-            db.execSQL("ALTER TABLE messages ADD COLUMN image_uri TEXT");
+        if (oldVersion < 3) {
+            db.execSQL("ALTER TABLE messages ADD COLUMN image_path TEXT"); // Changed from "image_uri" to "image_path"
         }
     }
 

@@ -3,7 +3,7 @@ package uk.ac.wlv.socialchat;
 public class Message {
     private int id;
     private String message;
-    private String imageUri;
+    private String imagePath;
 
     private boolean isSelected;
 
@@ -13,12 +13,12 @@ public class Message {
     }
 
     // Getters and setters
-    public String getImageUri() {
-        return imageUri;
+    public String getImagePath() {
+        return imagePath;
     }
 
-    public void setImageUri(String imageUri) {
-        this.imageUri = imageUri;
+    public void setImagePath(String imagePath) {
+        this.imagePath = imagePath;
     }
     public int getId() {
         return id;

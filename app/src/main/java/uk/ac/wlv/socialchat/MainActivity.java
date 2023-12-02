@@ -19,6 +19,11 @@ import androidx.appcompat.widget.SearchView;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import android.database.Cursor;
@@ -75,17 +80,43 @@ public class MainActivity extends AppCompatActivity implements SearchView.OnQuer
 
     private void openGallery() {
         Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
         startActivityForResult(intent, PICK_IMAGE_REQUEST);
     }
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null) {
-            imageUri = data.getData();
-            Log.d("MainActivity", "Selected Image URI: " + imageUri);
+            Uri selectedImageUri = data.getData();
+            String imagePath = copyImageToInternalStorage(selectedImageUri);
+            if (imagePath != null) {
+                imageUri = Uri.fromFile(new File(imagePath));
+                Log.d("MainActivity", "Image saved at: " + imageUri);
+            }
         }
     }
+
+    private String copyImageToInternalStorage(Uri uri) {
+        try {
+            InputStream inputStream = getContentResolver().openInputStream(uri);
+            String fileName = "image_" + System.currentTimeMillis() + ".jpg";
+            File file = new File(getFilesDir(), fileName);
+            try (OutputStream outputStream = new FileOutputStream(file)) {
+                byte[] buffer = new byte[1024];
+                int length;
+                while ((inputStream != null) && (length = inputStream.read(buffer)) > 0) {
+                    outputStream.write(buffer, 0, length);
+                }
+            }
+            return file.getAbsolutePath();
+        } catch (Exception e) {
+            Log.e("MainActivity", "Error copying image", e);
+            return null;
+        }
+    }
+
 
     private void deleteSelectedMessages() {
         List<Message> selectedMessages = messageAdapter.getSelectedMessages();
@@ -111,16 +142,25 @@ public class MainActivity extends AppCompatActivity implements SearchView.OnQuer
     private void loadMessages() {
         List<Message> newMessages = new ArrayList<>();
         SQLiteDatabase db = dbHelper.getReadableDatabase();
-        Cursor cursor = db.query("messages", new String[]{"id", "message", "image_uri"}, null, null, null, null, null);
+        Cursor cursor = db.query("messages", new String[]{"id", "message", "image_path"}, null, null, null, null, null);
 
         while (cursor.moveToNext()) {
             int idIndex = cursor.getColumnIndex("id");
             int messageIndex = cursor.getColumnIndex("message");
-            int imageUriIndex = cursor.getColumnIndex("image_uri");
-            String imageUri = cursor.getString(imageUriIndex);
-            Message message = new Message(cursor.getInt(idIndex), cursor.getString(messageIndex));
-            message.setImageUri(imageUri); // Set the image URI in the message object
-            newMessages.add(message);
+            int imagePathIndex = cursor.getColumnIndex("image_path");
+
+            if (idIndex != -1 && messageIndex != -1) {
+                int id = cursor.getInt(idIndex);
+                String messageText = cursor.getString(messageIndex);
+                Message message = new Message(id, messageText);
+
+                if (imagePathIndex != -1) {
+                    String imagePath = cursor.getString(imagePathIndex);
+                    message.setImagePath(imagePath);
+                }
+
+                newMessages.add(message);
+            }
         }
         cursor.close();
 
@@ -134,7 +174,6 @@ public class MainActivity extends AppCompatActivity implements SearchView.OnQuer
         loadMessages(); // Refresh the messages list
     }
 
-
     private void saveMessage() {
         String messageText = editTextMessage.getText().toString();
         if (!messageText.isEmpty()) {
@@ -142,16 +181,17 @@ public class MainActivity extends AppCompatActivity implements SearchView.OnQuer
             ContentValues values = new ContentValues();
             values.put("message", messageText);
             if (imageUri != null) {
-                values.put("image_uri", imageUri.toString());
+                values.put("image_path", imageUri.getPath()); // Store the path
             }
             db.insert("messages", null, values);
             db.close();
-            editTextMessage.setText(""); // Clear the input
-            imageUri = null; // Reset the image URI
-
+            // Reset the fields
+            editTextMessage.setText("");
+            imageUri = null;
             loadMessages();
         }
     }
+
 
 
     @Override

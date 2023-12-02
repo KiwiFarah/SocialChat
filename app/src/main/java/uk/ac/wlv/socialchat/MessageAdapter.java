@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,15 +45,14 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
         Message message = messages.get(position);
         holder.messageTextView.setText(message.getMessage());
 
-        if (message.getImageUri() != null && !message.getImageUri().isEmpty()) {
+        if (message.getImagePath() != null && !message.getImagePath().isEmpty()) {
             Glide.with(holder.itemView.getContext())
-                    .load(Uri.parse(message.getImageUri()))
+                    .load(new File(message.getImagePath()))
                     .into(holder.imageView);
             holder.imageView.setVisibility(View.VISIBLE);
         } else {
             holder.imageView.setVisibility(View.GONE);
         }
-        // Change the background color based on selection
         int lightRed = Color.parseColor("#FFCCCB");
         holder.itemView.setBackgroundColor(message.isSelected() ? lightRed : Color.TRANSPARENT);
 
